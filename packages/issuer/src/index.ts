@@ -6,4 +6,5 @@ export * from './utils/events';
 
 export * from './blockchain-facade/CertificationRequest';
 export * from './blockchain-facade/Certificate';
+export * from './blockchain-facade/BlockchainProperties';
 export { Contracts, CertificateUtils };
