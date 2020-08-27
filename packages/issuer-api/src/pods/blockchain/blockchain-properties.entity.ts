@@ -20,6 +20,9 @@ export class BlockchainProperties extends ExtendedBaseEntity {
     @Column()
     rpcNode: string;
 
+    @Column()
+    platformOperatorPrivateKey: string;
+
     @Column({ nullable: true })
     rpcNodeFallback: string;
 
@@ -33,6 +36,8 @@ export class BlockchainProperties extends ExtendedBaseEntity {
                 typeof signerOrPrivateKey === 'string'
                     ? new Wallet(signerOrPrivateKey, web3)
                     : signerOrPrivateKey;
+        } else {
+            signer = new Wallet(this.platformOperatorPrivateKey, web3);
         }
 
         return {

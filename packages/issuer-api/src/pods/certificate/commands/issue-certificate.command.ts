@@ -1,10 +1,10 @@
 export class IssueCertificateCommand {
     constructor(
-        public netId: number,
-        public to: string,
-        public value: string,
-        public fromTime: number,
-        public toTime: number,
-        public deviceId: string
+        public readonly netId: number,
+        public readonly to: string,
+        public readonly value: string,
+        public readonly fromTime: number,
+        public readonly toTime: number,
+        public readonly deviceId: string
     ) {}
 }

@@ -24,29 +24,43 @@ describe('Certificate tests', () => {
     });
 
     it('should deploy and create a certificate entry in the DB', async () => {
+        const devId = 'ABC-123';
+        const fromTime = moment().subtract(2, 'month').unix();
+        const toTime = moment().subtract(1, 'month').unix();
+
         await request(app.getHttpServer())
             .post('/certificate')
             .send({
                 netId: provider.network.chainId,
                 to: '0xd46aC0Bc23dB5e8AfDAAB9Ad35E9A3bA05E092E8', // ganache address #1
                 value: '1000000',
-                fromTime: moment().subtract(2, 'month').unix(),
-                toTime: moment().subtract(1, 'month').unix(),
-                deviceId: 'ABC-123'
+                fromTime,
+                toTime,
+                deviceId: devId
             })
             .expect(201)
             .expect((res) => {
-                console.log(res.body);
+                const {
+                    deviceId,
+                    generationStartTime,
+                    generationEndTime,
+                    creationTime,
+                    creationBlockHash,
+                    tokenId
+                } = res.body;
 
-                expect(res.body);
+                expect(deviceId).to.equal(devId);
+                expect(fromTime).to.equal(generationStartTime);
+                expect(toTime).to.equal(generationEndTime);
+                expect(creationTime).to.be.above(1);
+                expect(creationBlockHash);
+                expect(tokenId).to.be.above(-1);
             });
 
         await request(app.getHttpServer())
             .get(`/certificate`)
             .expect(200)
             .expect((res) => {
-                console.log(res.body);
-
                 expect(res.body);
             });
     });

@@ -78,7 +78,8 @@ export const bootstrapTestInstance = async () => {
         provider.network.chainId,
         registry.address,
         issuer.address,
-        web3
+        web3,
+        registryDeployer
     );
 
     app.useLogger(testLogger);
