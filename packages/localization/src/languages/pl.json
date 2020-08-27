@@ -154,7 +154,8 @@
             },
             "feedback": {
                 "noChangesMade": "Nie dokonano żadnych zmian.",
-                "unknownError": "Nieznany błąd"
+                "unknownError": "Nieznany błąd",
+                "supportTeamGetInContact": "Nasz zespół pomocy skontaktuje się z Tobą wkrótce, aby rozwiązać problem."
             }
         },
         "importAccount": {
@@ -329,6 +330,8 @@
                 "signatoryEmail": "Sygnatariusz e-mail",
                 "signatoryTelephone": "Telefon sygnatariusza",
                 "uploadSignatoryId": "Prześlij identyfikator osobisty",
+                "organizationCouldNotBeRegistered": "Przepraszamy, ale nie można zarejestrować tej organizacji.",
+                "organizationAlreadyExists": "Istnieje już organizacja z tymi samymi informacjami.",
                 "titleConnectOrRegisterIREC": "Dziękujemy za zarejestrowanie organizacji na platformie TK!",
                 "contentConnectOrRegisterIREC": "Sprawdzamy Twoje dane tak szybko, jak to możliwe i skontaktujemy się z Tobą, gdy wszystko zostanie zatwierdzone i będziesz mógł rozpocząć handel. <1/> <2/> Aby zarejestrować urządzenia i poprosić o I-REC, użytkownicy muszą również połączyć się z istniejącym kontem I-REC.",
                 "titleConnectIREC": "Żądanie dostępu do I-REC API",
