@@ -1,8 +1,4 @@
-import {
-    IOwnershipCommitment,
-    MAX_ENERGY_PER_CERTIFICATE,
-    IOwnershipCommitmentStatus
-} from '@energyweb/origin-backend-core';
+import { MAX_ENERGY_PER_CERTIFICATE } from '@energyweb/origin-backend-core';
 import { Event as BlockchainEvent, ContractTransaction, ethers, BigNumber } from 'ethers';
 
 import { Timestamp } from '@energyweb/utils-general';
@@ -64,8 +60,6 @@ export class Certificate implements ICertificate {
 
     public creationBlockHash: string;
 
-    public ownershipCommitment: IOwnershipCommitment;
-
     public certificationRequestId: number;
 
     public initialized = false;
@@ -73,8 +67,6 @@ export class Certificate implements ICertificate {
     public data: string;
 
     public claims: IClaim[];
-
-    public privateOwnershipCommitment: IOwnershipCommitment = {};
 
     constructor(public id: number, public blockchainProperties: IBlockchainProperties) {}
 
@@ -219,27 +211,18 @@ export class Certificate implements ICertificate {
         return claimTx;
     }
 
-    async transfer(
-        to: string,
-        amount?: BigNumber
-    ): Promise<ContractTransaction | IOwnershipCommitmentStatus> {
+    async transfer(to: string, amount?: BigNumber, from?: string): Promise<ContractTransaction> {
         if (await this.isRevoked()) {
             throw new Error(`Unable to transfer Certificate #${this.id}. It has been revoked.`);
         }
 
         const { activeUser } = this.blockchainProperties;
-        const fromAddress = await activeUser.getAddress();
+        const fromAddress = from ?? (await activeUser.getAddress());
         const toAddress = ethers.utils.getAddress(to);
 
         const { publicVolume } = this.energy;
 
         const amountToTransfer = amount ?? publicVolume;
-
-        if (amountToTransfer.eq(0) || amountToTransfer.gt(publicVolume)) {
-            throw new Error(
-                `transfer(): unable to send amount ${amountToTransfer} Wh. Sender ${fromAddress} has a balance of ${publicVolume} Wh`
-            );
-        }
 
         const { registry } = this.blockchainProperties;
         const registryWithSigner = registry.connect(activeUser);

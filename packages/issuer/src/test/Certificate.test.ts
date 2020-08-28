@@ -154,6 +154,16 @@ describe('Certificate tests', () => {
 
         assert.isTrue(certificate.isOwned);
         assert.equal(certificate.energy.publicVolume.toString(), totalVolume.div(4).toString());
+
+        const sharesInCertificate = await CertificateUtils.calculateOwnership(
+            certificate.id,
+            blockchainProperties
+        );
+
+        assert.deepInclude(sharesInCertificate, {
+            [deviceOwnerWallet.address]: totalVolume.div(4).mul(3).toString(),
+            [traderWallet.address]: totalVolume.div(4).toString()
+        });
     });
 
     // it('transfers a private certificate', async () => {

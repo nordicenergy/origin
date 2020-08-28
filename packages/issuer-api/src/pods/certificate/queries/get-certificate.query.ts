@@ -1,1 +1,3 @@
-export class GetCertificateQuery {}
+export class GetCertificateQuery {
+    constructor(public readonly id: number) {}
+}

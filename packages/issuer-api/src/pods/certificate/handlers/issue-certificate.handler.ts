@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Certificate as CertificateFacade } from '@energyweb/issuer';
+import { Certificate as CertificateFacade, CertificateUtils } from '@energyweb/issuer';
 import { BigNumber } from 'ethers';
 import { IssueCertificateCommand } from '../commands/issue-certificate.command';
 import { Certificate } from '../certificate.entity';
@@ -29,6 +29,11 @@ export class IssueCertificateHandler implements ICommandHandler<IssueCertificate
             blockchainProperties.wrap()
         );
 
+        const certificateOwners = await CertificateUtils.calculateOwnership(
+            cert.id,
+            blockchainProperties.wrap()
+        );
+
         const certificate = this.repository.create({
             blockchain: blockchainProperties,
             tokenId: cert.id,
@@ -36,7 +41,8 @@ export class IssueCertificateHandler implements ICommandHandler<IssueCertificate
             generationStartTime: cert.generationStartTime,
             generationEndTime: cert.generationEndTime,
             creationTime: cert.creationTime,
-            creationBlockHash: cert.creationBlockHash
+            creationBlockHash: cert.creationBlockHash,
+            owners: certificateOwners
         });
 
         return this.repository.save(certificate);

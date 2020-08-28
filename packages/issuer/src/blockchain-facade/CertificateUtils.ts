@@ -1,13 +1,17 @@
-import { EventFilter, utils, providers } from 'ethers';
+import { EventFilter, utils, providers, BigNumber, ContractTransaction } from 'ethers';
 
-import { Certificate, IClaimData } from './Certificate';
+import { Certificate, IClaimData, ICertificate } from './Certificate';
 import { getEventsFromContract, IBlockchainEvent } from '../utils/events';
 import { IBlockchainProperties } from './BlockchainProperties';
+
+export interface IShareInCertificate {
+    [address: string]: string;
+}
 
 export const encodeClaimData = async (
     claimData: IClaimData,
     blockchainProperties: IBlockchainProperties
-) => {
+): Promise<string> => {
     const { beneficiary, address, region, zipCode, countryCode } = claimData;
 
     return blockchainProperties.registry.encodeClaimData(
@@ -44,7 +48,7 @@ export async function claimCertificates(
     certificateIds: number[],
     claimData: IClaimData,
     blockchainProperties: IBlockchainProperties
-) {
+): Promise<ContractTransaction> {
     const certificatesPromises = certificateIds.map((certId) =>
         new Certificate(certId, blockchainProperties).sync()
     );
@@ -85,7 +89,7 @@ export async function transferCertificates(
     certificateIds: number[],
     to: string,
     blockchainProperties: IBlockchainProperties
-) {
+): Promise<ContractTransaction> {
     const certificatesPromises = certificateIds.map((certId) =>
         new Certificate(certId, blockchainProperties).sync()
     );
@@ -210,3 +214,54 @@ export const getAllCertificateEvents = async (
 
     return [...issuanceSingleEvents, ...transferSingleEvents, ...claimSingleEvents];
 };
+
+export const calculateOwnership = async (
+    certificateId: ICertificate['id'],
+    blockchainProperties: IBlockchainProperties
+): Promise<IShareInCertificate> => {
+    const ownedShares: IShareInCertificate = {};
+    const { registry } = blockchainProperties;
+
+    const transferSingleEvents = (
+        await getEventsFromContract(
+            registry,
+            registry.filters.TransferSingle(null, null, null, null, null)
+        )
+    ).filter((event) => event._id.eq(certificateId));
+
+    const transferBatchEvents = (
+        await getEventsFromContract(
+            registry,
+            registry.filters.TransferBatch(null, null, null, null, null)
+        )
+    ).filter((e) => e._ids.some((id: BigNumber) => id.eq(certificateId)));
+
+    const allHistoricOwners = [
+        ...new Set([...transferSingleEvents, ...transferBatchEvents].map((event) => event._to))
+    ];
+
+    const allHistoricOwnersBalances = await Promise.all(
+        allHistoricOwners.map((ownerAddress) => registry.balanceOf(ownerAddress, certificateId))
+    );
+
+    allHistoricOwners.forEach((owner, index) => {
+        ownedShares[owner] = allHistoricOwnersBalances[index].toString();
+    });
+
+    return ownedShares;
+};
+
+export async function approveOperator(
+    operator: string,
+    blockchainProperties: IBlockchainProperties
+): Promise<ContractTransaction> {
+    const { activeUser, registry } = blockchainProperties;
+
+    const registryWithSigner = registry.connect(activeUser);
+
+    const approveOperatorTx = await registryWithSigner.setApprovalForAll(operator, true);
+
+    await approveOperatorTx.wait();
+
+    return approveOperatorTx;
+}

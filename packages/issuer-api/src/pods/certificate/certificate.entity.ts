@@ -1,6 +1,7 @@
 import { ExtendedBaseEntity } from '@energyweb/origin-backend';
 import { Column, Entity, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { IsInt } from 'class-validator';
+import { CertificateUtils } from '@energyweb/issuer';
 import { BlockchainProperties } from '../blockchain/blockchain-properties.entity';
 
 export interface ICertificate {
@@ -41,4 +42,7 @@ export class Certificate extends ExtendedBaseEntity implements ICertificate {
 
     @Column()
     creationBlockHash: string;
+
+    @Column('simple-json')
+    owners: CertificateUtils.IShareInCertificate;
 }
