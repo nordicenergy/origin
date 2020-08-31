@@ -66,12 +66,14 @@ describe('Certificate tests', () => {
             .get(`/certificate`)
             .expect(200)
             .expect((res) => {
-                expect(res.body);
+                expect(res.body.length).to.equal(1);
             });
     });
 
     it('should transfer a certificate', async () => {
         const value = '1000000';
+
+        let certificateId: number;
 
         await request(app.getHttpServer())
             .post('/certificate')
@@ -86,34 +88,29 @@ describe('Certificate tests', () => {
             .expect(201)
             .expect(async (res) => {
                 const { id, owners } = res.body;
-                console.log({
-                    id
-                });
+                certificateId = id;
 
                 expect(owners[deviceManager.address]).to.equal(value);
+            });
 
-                await request(app.getHttpServer())
-                    .put(`/certificate/${id}`)
-                    .send({
-                        to: registryDeployer.address,
-                        amount: value
-                    })
-                    .expect(200)
-                    .expect((transferResponse) => {
-                        expect(transferResponse.body.success).to.be.true;
-                    });
+        await request(app.getHttpServer())
+            .put(`/certificate/${certificateId}`)
+            .send({
+                to: registryDeployer.address,
+                amount: value
+            })
+            .expect(200)
+            .expect((transferResponse) => {
+                expect(transferResponse.body.success).to.be.true;
+            });
 
-                await request(app.getHttpServer())
-                    .get(`/certificate/${id}`)
-                    .expect(200)
-                    .expect((getResponse) => {
-                        console.log({
-                            body: getResponse.body
-                        });
-                        const { owners: newOwners } = getResponse.body;
+        await request(app.getHttpServer())
+            .get(`/certificate/${certificateId}`)
+            .expect(200)
+            .expect((getResponse) => {
+                const { owners: newOwners } = getResponse.body;
 
-                        expect(newOwners[registryDeployer.address]).to.equal(value);
-                    });
+                expect(newOwners[registryDeployer.address]).to.equal(value);
             });
     });
 });

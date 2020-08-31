@@ -12,14 +12,6 @@ export class GetCertificateHandler implements IQueryHandler<GetCertificateQuery>
     ) {}
 
     async execute(query: GetCertificateQuery): Promise<Certificate> {
-        console.log({ query, allCertificates: await this.repository.find() });
-
-        const certificate = await this.repository.findOne(query.id);
-
-        console.log({
-            certificate
-        });
-
-        return certificate;
+        return this.repository.findOne(query.id);
     }
 }

@@ -44,7 +44,6 @@ export class TransferCertificateHandler implements ICommandHandler<TransferCerti
         await this.repository.update(certificateId, {
             owners: newOwners
         });
-        console.log({ allCertificates: await this.repository.find() });
 
         return {
             success: true
