@@ -5,6 +5,7 @@ import request from 'supertest';
 
 import { providers } from 'ethers';
 import moment from 'moment';
+import { IClaimData, IClaim } from '@energyweb/issuer';
 import { DatabaseService } from './database.service';
 import { bootstrapTestInstance, deviceManager, registryDeployer } from './issuer-api';
 
@@ -86,7 +87,7 @@ describe('Certificate tests', () => {
                 deviceId: 'ABC-123'
             })
             .expect(201)
-            .expect(async (res) => {
+            .expect((res) => {
                 const { id, owners } = res.body;
                 certificateId = id;
 
@@ -94,7 +95,7 @@ describe('Certificate tests', () => {
             });
 
         await request(app.getHttpServer())
-            .put(`/certificate/${certificateId}`)
+            .put(`/certificate/${certificateId}/transfer`)
             .send({
                 to: registryDeployer.address,
                 amount: value
@@ -111,6 +112,60 @@ describe('Certificate tests', () => {
                 const { owners: newOwners } = getResponse.body;
 
                 expect(newOwners[registryDeployer.address]).to.equal(value);
+            });
+    });
+
+    it('should claim a certificate', async () => {
+        const value = '1000000';
+        const claimData: IClaimData = {
+            beneficiary: 'Testing beneficiary 1234',
+            address: 'Random address 123, Somewhere',
+            region: 'Northernmost Region',
+            zipCode: '321-45',
+            countryCode: 'DE'
+        };
+
+        let certificateId: number;
+
+        await request(app.getHttpServer())
+            .post('/certificate')
+            .send({
+                netId: provider.network.chainId,
+                to: deviceManager.address,
+                value,
+                fromTime: moment().subtract(2, 'month').unix(),
+                toTime: moment().subtract(1, 'month').unix(),
+                deviceId: 'ABC-123'
+            })
+            .expect(201)
+            .expect((res) => {
+                certificateId = res.body.id;
+            });
+
+        await request(app.getHttpServer())
+            .put(`/certificate/${certificateId}/claim`)
+            .send({ claimData })
+            .expect(200)
+            .expect((claimResponse) => {
+                expect(claimResponse.body.success).to.be.true;
+            });
+
+        await request(app.getHttpServer())
+            .get(`/certificate/${certificateId}`)
+            .expect(200)
+            .expect((getResponse) => {
+                const { claimers, claims } = getResponse.body;
+
+                expect(claimers[deviceManager.address]).to.equal(value);
+                expect(
+                    claims.some(
+                        (claim: IClaim) =>
+                            claim.to === deviceManager.address &&
+                            claim.from === deviceManager.address &&
+                            JSON.stringify(claim.claimData) === JSON.stringify(claimData) &&
+                            claim.value === parseInt(value, 10)
+                    )
+                ).to.be.true;
             });
     });
 });

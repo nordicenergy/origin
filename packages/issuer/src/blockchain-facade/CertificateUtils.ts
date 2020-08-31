@@ -251,6 +251,44 @@ export const calculateOwnership = async (
     return ownedShares;
 };
 
+export const calculateClaims = async (
+    certificateId: ICertificate['id'],
+    blockchainProperties: IBlockchainProperties
+): Promise<IShareInCertificate> => {
+    const claimedShares: IShareInCertificate = {};
+    const { registry } = blockchainProperties;
+
+    const claimSingleEvents = (
+        await getEventsFromContract(
+            registry,
+            registry.filters.ClaimSingle(null, null, null, null, null, null)
+        )
+    ).filter((event) => event._id.eq(certificateId));
+
+    const claimBatchEvents = (
+        await getEventsFromContract(
+            registry,
+            registry.filters.ClaimBatch(null, null, null, null, null, null)
+        )
+    ).filter((e) => e._ids.some((id: BigNumber) => id.eq(certificateId)));
+
+    const allHistoricClaimers = [
+        ...new Set([...claimSingleEvents, ...claimBatchEvents].map((event) => event._claimSubject))
+    ];
+
+    const allHistoricClaimersBalances = await Promise.all(
+        allHistoricClaimers.map((claimerAddress) =>
+            registry.claimedBalanceOf(claimerAddress, certificateId)
+        )
+    );
+
+    allHistoricClaimers.forEach((owner, index) => {
+        claimedShares[owner] = allHistoricClaimersBalances[index].toString();
+    });
+
+    return claimedShares;
+};
+
 export async function approveOperator(
     operator: string,
     blockchainProperties: IBlockchainProperties

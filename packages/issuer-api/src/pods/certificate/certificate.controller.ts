@@ -21,6 +21,8 @@ import { GetAllCertificatesQuery } from './queries/get-all-certificates.query';
 import { GetCertificateQuery } from './queries/get-certificate.query';
 import { TransferCertificateCommand } from './commands/transfer-certificate.command';
 import { ITransferCertificateDTO } from './commands/transfer-certificate.dto';
+import { IClaimCertificateDTO } from './commands/claim-certificate.dto';
+import { ClaimCertificateCommand } from './commands/claim-certificate.command';
 
 @Controller('certificate')
 export class CertificateController {
@@ -55,7 +57,7 @@ export class CertificateController {
         );
     }
 
-    @Put('/:id')
+    @Put('/:id/transfer')
     @UseGuards(AuthGuard(), ActiveUserGuard)
     public async transfer(
         @UserDecorator() { blockchainAccountAddress }: ILoggedInUser,
@@ -67,6 +69,24 @@ export class CertificateController {
                 certificateId,
                 blockchainAccountAddress,
                 dto.to,
+                dto.amount
+            )
+        );
+    }
+
+    @Put('/:id/claim')
+    @UseGuards(AuthGuard(), ActiveUserGuard)
+    public async claim(
+        @UserDecorator() { blockchainAccountAddress }: ILoggedInUser,
+        @Param('id', new ParseIntPipe()) certificateId: number,
+        @Body() dto: IClaimCertificateDTO
+    ): Promise<ISuccessResponse> {
+        return this.commandBus.execute(
+            new ClaimCertificateCommand(
+                certificateId,
+                dto.claimData,
+                blockchainAccountAddress,
+                blockchainAccountAddress,
                 dto.amount
             )
         );

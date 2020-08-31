@@ -175,22 +175,21 @@ export class Certificate implements ICertificate {
         return claimedVolume.gt(0);
     }
 
-    async claim(claimData: IClaimData, amount?: BigNumber): Promise<ContractTransaction> {
+    async claim(
+        claimData: IClaimData,
+        amount?: BigNumber,
+        from?: string,
+        to?: string
+    ): Promise<ContractTransaction> {
         const { publicVolume } = this.energy;
 
-        if (publicVolume.eq(0)) {
+        if (publicVolume.eq(0) && !amount) {
             throw new Error(
-                `claim(): Unable to claim certificate. You do not own a share in the certificate.`
+                `claim(): You do not own a share in the certificate. If you're an operator, please define an amount.`
             );
         }
 
-        if (amount && amount.gt(publicVolume)) {
-            throw new Error(`claim(): Can't claim ${amount} Wh. You only own ${publicVolume} Wh.`);
-        }
-
-        const { activeUser } = this.blockchainProperties;
-
-        const { registry } = this.blockchainProperties;
+        const { activeUser, registry } = this.blockchainProperties;
         const registryWithSigner = registry.connect(activeUser);
 
         const activeUserAddress = await activeUser.getAddress();
@@ -198,8 +197,8 @@ export class Certificate implements ICertificate {
         const encodedClaimData = await encodeClaimData(claimData, this.blockchainProperties);
 
         const claimTx = await registryWithSigner.safeTransferAndClaimFrom(
-            activeUserAddress,
-            activeUserAddress,
+            from ?? activeUserAddress,
+            to ?? activeUserAddress,
             this.id,
             amount || publicVolume,
             this.data,
@@ -271,32 +270,31 @@ export class Certificate implements ICertificate {
             registry.filters.ClaimSingle(null, null, null, null, null, null)
         );
 
-        claimSingleEvents
-            .filter((claimEvent) => claimEvent._id.toNumber() === this.id)
-            .forEach(async (claimEvent) => {
+        for (const claimEvent of claimSingleEvents) {
+            if (claimEvent._id.toNumber() === this.id) {
                 const { _claimData, _id, _claimIssuer, _claimSubject, _topic, _value } = claimEvent;
                 const claimData = await decodeClaimData(_claimData, this.blockchainProperties);
 
                 claims.push({
-                    id: _id,
+                    id: _id.toNumber(),
                     from: _claimIssuer,
                     to: _claimSubject,
-                    topic: _topic,
-                    value: _value,
+                    topic: _topic.toNumber(),
+                    value: _value.toNumber(),
                     claimData
                 });
-            });
+            }
+        }
 
         const claimBatchEvents = await getEventsFromContract(
             registry,
             registry.filters.ClaimBatch(null, null, null, null, null, null)
         );
 
-        claimBatchEvents
-            .filter((claimBatchEvent) =>
+        for (const claimBatchEvent of claimBatchEvents) {
+            if (
                 claimBatchEvent._ids.map((idAsBN: BigNumber) => idAsBN.toNumber()).includes(this.id)
-            )
-            .forEach(async (claimBatchEvent) => {
+            ) {
                 const {
                     _ids,
                     _claimData,
@@ -314,14 +312,15 @@ export class Certificate implements ICertificate {
                 );
 
                 claims.push({
-                    id: _ids[index],
+                    id: _ids[index].toNumber(),
                     from: _claimIssuer,
                     to: _claimSubject,
-                    topic: _topics[index],
-                    value: _values[index],
+                    topic: _topics[index].toNumber(),
+                    value: _values[index].toNumber(),
                     claimData
                 });
-            });
+            }
+        }
 
         return claims;
     }
