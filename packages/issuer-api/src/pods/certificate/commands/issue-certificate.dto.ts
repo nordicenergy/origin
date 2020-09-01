@@ -1,6 +1,6 @@
 export interface IIssueCertificateDTO {
     to: string;
-    value: string;
+    energy: string;
     fromTime: number;
     toTime: number;
     deviceId: string;

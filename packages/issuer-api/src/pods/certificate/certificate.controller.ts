@@ -46,7 +46,7 @@ export class CertificateController {
     @UseGuards(AuthGuard(), ActiveUserGuard)
     public async issue(@Body() dto: IIssueCertificateDTO): Promise<Certificate> {
         return this.commandBus.execute(
-            new IssueCertificateCommand(dto.to, dto.value, dto.fromTime, dto.toTime, dto.deviceId)
+            new IssueCertificateCommand(dto.to, dto.energy, dto.fromTime, dto.toTime, dto.deviceId)
         );
     }
 

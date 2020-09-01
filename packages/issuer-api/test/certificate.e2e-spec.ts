@@ -8,6 +8,14 @@ import { IClaimData, IClaim } from '@energyweb/issuer';
 import { DatabaseService } from './database.service';
 import { bootstrapTestInstance, deviceManager, registryDeployer } from './issuer-api';
 
+const certificateTestData = {
+    to: deviceManager.address,
+    deviceId: 'ABC-123',
+    fromTime: moment().subtract(2, 'month').unix(),
+    toTime: moment().subtract(1, 'month').unix(),
+    energy: '1000000'
+};
+
 describe('Certificate tests', () => {
     let app: INestApplication;
     let databaseService: DatabaseService;
@@ -24,21 +32,9 @@ describe('Certificate tests', () => {
     });
 
     it('should deploy and create a certificate entry in the DB', async () => {
-        const devId = 'ABC-123';
-        const fromTime = moment().subtract(2, 'month').unix();
-        const toTime = moment().subtract(1, 'month').unix();
-
-        const value = '1000000';
-
         await request(app.getHttpServer())
             .post('/certificate')
-            .send({
-                to: deviceManager.address, // ganache address #1
-                value,
-                fromTime,
-                toTime,
-                deviceId: devId
-            })
+            .send(certificateTestData)
             .expect(201)
             .expect((res) => {
                 const {
@@ -51,13 +47,13 @@ describe('Certificate tests', () => {
                     owners
                 } = res.body;
 
-                expect(deviceId).to.equal(devId);
-                expect(fromTime).to.equal(generationStartTime);
-                expect(toTime).to.equal(generationEndTime);
+                expect(deviceId).to.equal(certificateTestData.deviceId);
+                expect(certificateTestData.fromTime).to.equal(generationStartTime);
+                expect(certificateTestData.toTime).to.equal(generationEndTime);
                 expect(creationTime).to.be.above(1);
                 expect(creationBlockHash);
                 expect(tokenId).to.be.above(-1);
-                expect(owners[deviceManager.address]).to.equal(value);
+                expect(owners[deviceManager.address]).to.equal(certificateTestData.energy);
             });
 
         await request(app.getHttpServer())
@@ -69,32 +65,24 @@ describe('Certificate tests', () => {
     });
 
     it('should transfer a certificate', async () => {
-        const value = '1000000';
-
         let certificateId: number;
 
         await request(app.getHttpServer())
             .post('/certificate')
-            .send({
-                to: deviceManager.address,
-                value,
-                fromTime: moment().subtract(2, 'month').unix(),
-                toTime: moment().subtract(1, 'month').unix(),
-                deviceId: 'ABC-123'
-            })
+            .send(certificateTestData)
             .expect(201)
             .expect((res) => {
                 const { id, owners } = res.body;
                 certificateId = id;
 
-                expect(owners[deviceManager.address]).to.equal(value);
+                expect(owners[deviceManager.address]).to.equal(certificateTestData.energy);
             });
 
         await request(app.getHttpServer())
             .put(`/certificate/${certificateId}/transfer`)
             .send({
                 to: registryDeployer.address,
-                amount: value
+                amount: certificateTestData.energy
             })
             .expect(200)
             .expect((transferResponse) => {
@@ -107,7 +95,7 @@ describe('Certificate tests', () => {
             .expect((getResponse) => {
                 const { owners: newOwners } = getResponse.body;
 
-                expect(newOwners[registryDeployer.address]).to.equal(value);
+                expect(newOwners[registryDeployer.address]).to.equal(certificateTestData.energy);
             });
     });
 
@@ -125,13 +113,7 @@ describe('Certificate tests', () => {
 
         await request(app.getHttpServer())
             .post('/certificate')
-            .send({
-                to: deviceManager.address,
-                value,
-                fromTime: moment().subtract(2, 'month').unix(),
-                toTime: moment().subtract(1, 'month').unix(),
-                deviceId: 'ABC-123'
-            })
+            .send(certificateTestData)
             .expect(201)
             .expect((res) => {
                 certificateId = res.body.id;

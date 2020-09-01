@@ -1,36 +1,27 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IEventHandler, EventsHandler } from '@nestjs/cqrs';
 import { Certificate as CertificateFacade, CertificateUtils } from '@energyweb/issuer';
-import { BigNumber } from 'ethers';
-import { IssueCertificateCommand } from '../commands/issue-certificate.command';
-import { Certificate } from '../certificate.entity';
-import { BlockchainPropertiesService } from '../../blockchain/blockchain-properties.service';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
-@CommandHandler(IssueCertificateCommand)
-export class IssueCertificateHandler implements ICommandHandler<IssueCertificateCommand> {
+import { CertificateCreatedEvent } from '../events/certificate-created-event';
+import { BlockchainPropertiesService } from '../../blockchain/blockchain-properties.service';
+import { Certificate } from '../certificate.entity';
+
+@EventsHandler(CertificateCreatedEvent)
+export class CertificateCreatedHandler implements IEventHandler<CertificateCreatedEvent> {
     constructor(
         @InjectRepository(Certificate)
         private readonly repository: Repository<Certificate>,
         private readonly blockchainPropertiesService: BlockchainPropertiesService
     ) {}
 
-    async execute(command: IssueCertificateCommand): Promise<Certificate> {
-        const { to, energy, fromTime, toTime, deviceId } = command;
-
+    async handle(event: CertificateCreatedEvent): Promise<Certificate> {
         const blockchainProperties = await this.blockchainPropertiesService.get();
 
-        const cert = await CertificateFacade.create(
-            to,
-            BigNumber.from(energy),
-            fromTime,
-            toTime,
-            deviceId,
-            blockchainProperties.wrap()
-        );
+        const cert = await new CertificateFacade(event.certificateId, blockchainProperties.wrap());
 
         const certificateOwners = await CertificateUtils.calculateOwnership(
-            cert.id,
+            event.certificateId,
             blockchainProperties.wrap()
         );
 
