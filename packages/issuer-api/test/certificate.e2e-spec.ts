@@ -3,7 +3,6 @@ import { INestApplication } from '@nestjs/common';
 import { expect } from 'chai';
 import request from 'supertest';
 
-import { providers } from 'ethers';
 import moment from 'moment';
 import { IClaimData, IClaim } from '@energyweb/issuer';
 import { DatabaseService } from './database.service';
@@ -12,10 +11,9 @@ import { bootstrapTestInstance, deviceManager, registryDeployer } from './issuer
 describe('Certificate tests', () => {
     let app: INestApplication;
     let databaseService: DatabaseService;
-    let provider: providers.FallbackProvider;
 
     before(async () => {
-        ({ databaseService, app, provider } = await bootstrapTestInstance());
+        ({ databaseService, app } = await bootstrapTestInstance());
 
         await app.init();
     });
@@ -35,7 +33,6 @@ describe('Certificate tests', () => {
         await request(app.getHttpServer())
             .post('/certificate')
             .send({
-                netId: provider.network.chainId,
                 to: deviceManager.address, // ganache address #1
                 value,
                 fromTime,
@@ -79,7 +76,6 @@ describe('Certificate tests', () => {
         await request(app.getHttpServer())
             .post('/certificate')
             .send({
-                netId: provider.network.chainId,
                 to: deviceManager.address,
                 value,
                 fromTime: moment().subtract(2, 'month').unix(),
@@ -130,7 +126,6 @@ describe('Certificate tests', () => {
         await request(app.getHttpServer())
             .post('/certificate')
             .send({
-                netId: provider.network.chainId,
                 to: deviceManager.address,
                 value,
                 fromTime: moment().subtract(2, 'month').unix(),

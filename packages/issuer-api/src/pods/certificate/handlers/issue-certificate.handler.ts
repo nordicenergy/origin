@@ -16,9 +16,9 @@ export class IssueCertificateHandler implements ICommandHandler<IssueCertificate
     ) {}
 
     async execute(command: IssueCertificateCommand): Promise<Certificate> {
-        const { to, value, fromTime, toTime, deviceId, netId } = command;
+        const { to, value, fromTime, toTime, deviceId } = command;
 
-        const blockchainProperties = await this.blockchainPropertiesService.get(netId);
+        const blockchainProperties = await this.blockchainPropertiesService.get();
 
         const cert = await CertificateFacade.create(
             to,

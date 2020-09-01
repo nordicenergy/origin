@@ -1,5 +1,5 @@
 import { ExtendedBaseEntity } from '@energyweb/origin-backend';
-import { Column, Entity, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, Unique } from 'typeorm';
 import { IsInt } from 'class-validator';
 import { CertificateUtils, IClaim } from '@energyweb/issuer';
 import { BlockchainProperties } from '../blockchain/blockchain-properties.entity';
@@ -15,6 +15,7 @@ export interface ICertificate {
 }
 
 @Entity()
+@Unique(['tokenId'])
 export class Certificate extends ExtendedBaseEntity implements ICertificate {
     @PrimaryGeneratedColumn()
     id: number;

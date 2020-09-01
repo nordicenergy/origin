@@ -7,6 +7,7 @@ import path from 'path';
 import { APP_PIPE } from '@nestjs/core';
 import { CertificateModule } from './pods/certificate/certificate.module';
 import { BlockchainPropertiesModule } from './pods/blockchain/blockchain-properties.module';
+import { CertificationRequestModule } from './pods/certification-request/certification-request.module';
 
 const getEnvFilePath = () => {
     const pathsToTest = ['../../../../../.env', '../../../../../../.env'];
@@ -35,7 +36,8 @@ export const providers = [{ provide: APP_PIPE, useClass: ValidationPipe }];
         }),
         ScheduleModule.forRoot(),
         CertificateModule,
-        BlockchainPropertiesModule
+        BlockchainPropertiesModule,
+        CertificationRequestModule
     ],
     providers
 })

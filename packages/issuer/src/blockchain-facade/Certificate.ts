@@ -1,4 +1,3 @@
-import { MAX_ENERGY_PER_CERTIFICATE } from '@energyweb/origin-backend-core';
 import { Event as BlockchainEvent, ContractTransaction, ethers, BigNumber } from 'ethers';
 
 import { Timestamp } from '@energyweb/utils-general';
@@ -6,6 +5,7 @@ import { Timestamp } from '@energyweb/utils-general';
 import { getEventsFromContract } from '../utils/events';
 import { encodeClaimData, decodeClaimData } from './CertificateUtils';
 import { IBlockchainProperties } from './BlockchainProperties';
+import { MAX_ENERGY_PER_CERTIFICATE } from './CertificationRequest';
 
 export interface ICertificateEnergy {
     publicVolume: BigNumber;
@@ -315,7 +315,7 @@ export class Certificate implements ICertificate {
                     id: _ids[index].toNumber(),
                     from: _claimIssuer,
                     to: _claimSubject,
-                    topic: _topics[index].toNumber(),
+                    topic: _topics[index]?.toNumber(),
                     value: _values[index].toNumber(),
                     claimData
                 });
