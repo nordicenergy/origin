@@ -3,12 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BigNumber } from 'ethers';
 import { CertificationRequest as CertificationRequestFacade } from '@energyweb/issuer';
-
 import { BadRequestException } from '@nestjs/common';
-import {
-    ApproveCertificationRequestCommand,
-    IApproveCertificationRequestResult
-} from '../commands/approve-certification-request.command';
+import { ISuccessResponse } from '@energyweb/origin-backend-core';
+
+import { ApproveCertificationRequestCommand } from '../commands/approve-certification-request.command';
 import { CertificationRequest } from '../certification-request.entity';
 import { BlockchainPropertiesService } from '../../blockchain/blockchain-properties.service';
 import { CertificateCreatedEvent } from '../../certificate/events/certificate-created-event';
@@ -23,9 +21,7 @@ export class ApproveCertificationRequestHandler
         private readonly eventBus: EventBus
     ) {}
 
-    async execute(
-        command: ApproveCertificationRequestCommand
-    ): Promise<IApproveCertificationRequestResult> {
+    async execute(command: ApproveCertificationRequestCommand): Promise<ISuccessResponse> {
         const { id } = command;
 
         const certificationRequest = await this.repository.findOne(id);
@@ -40,7 +36,7 @@ export class ApproveCertificationRequestHandler
         const blockchainProperties = await this.blockchainPropertiesService.get();
 
         const certReq = await new CertificationRequestFacade(
-            id,
+            certificationRequest.requestId,
             blockchainProperties.wrap()
         ).sync();
 
@@ -55,19 +51,16 @@ export class ApproveCertificationRequestHandler
             };
         }
 
-        const certificateId = await this.eventBus.publish(
-            new CertificateCreatedEvent(newCertificateId)
-        );
-        console.log({
-            certificateId
-        });
+        this.eventBus.publish(new CertificateCreatedEvent(newCertificateId));
 
-        await this.repository.update(id, { approved: true });
+        await this.repository.update(id, {
+            approved: true,
+            issuedCertificateTokenId: newCertificateId
+        });
 
         return {
             success: true,
-            message: `Successfully approved certificationRequest ${id}. Created a new certificate with the ID ${certificateId}`,
-            newCertificateId: certificateId
+            message: `Successfully approved certificationRequest ${id}.`
         };
     }
 }

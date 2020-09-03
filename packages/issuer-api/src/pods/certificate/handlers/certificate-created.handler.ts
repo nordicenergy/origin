@@ -18,7 +18,10 @@ export class CertificateCreatedHandler implements IEventHandler<CertificateCreat
     async handle(event: CertificateCreatedEvent): Promise<Certificate> {
         const blockchainProperties = await this.blockchainPropertiesService.get();
 
-        const cert = await new CertificateFacade(event.certificateId, blockchainProperties.wrap());
+        const cert = await new CertificateFacade(
+            event.certificateId,
+            blockchainProperties.wrap()
+        ).sync();
 
         const certificateOwners = await CertificateUtils.calculateOwnership(
             event.certificateId,

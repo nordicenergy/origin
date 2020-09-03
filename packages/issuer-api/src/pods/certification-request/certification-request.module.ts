@@ -6,12 +6,14 @@ import { CertificationRequest } from './certification-request.entity';
 import { CertificationRequestController } from './certification-request.controller';
 import { BlockchainPropertiesModule } from '../blockchain/blockchain-properties.module';
 import { Handlers } from './handlers';
+import { CertificateModule } from '../certificate/certificate.module';
 
 @Module({
     imports: [
         CqrsModule,
         TypeOrmModule.forFeature([CertificationRequest]),
-        BlockchainPropertiesModule
+        BlockchainPropertiesModule,
+        CertificateModule
     ],
     controllers: [CertificationRequestController],
     providers: [...Handlers],

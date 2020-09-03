@@ -15,6 +15,7 @@ export interface ICertificationRequestDTO {
     revoked: boolean;
     approvedDate?: Date;
     revokedDate?: Date;
+    issuedCertificateTokenId?: number;
 }
 
 @Entity()
@@ -66,4 +67,9 @@ export class CertificationRequest extends ExtendedBaseEntity implements ICertifi
 
     @Column({ type: 'timestamptz', nullable: true })
     revokedDate: Date;
+
+    @Column({ nullable: true })
+    @IsInt()
+    @Min(0)
+    issuedCertificateTokenId: number;
 }

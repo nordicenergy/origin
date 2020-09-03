@@ -7,6 +7,8 @@ import moment from 'moment';
 import { DatabaseService } from './database.service';
 import { bootstrapTestInstance, deviceManager } from './issuer-api';
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const certificationRequestTestData = {
     to: deviceManager.address,
     energy: '1000000',
@@ -74,7 +76,7 @@ describe('Certification Request tests', () => {
 
     it('should approve a certification request', async () => {
         let certificationRequestId;
-        let newCertificateId;
+        let newCertificateTokenId;
 
         await request(app.getHttpServer())
             .post('/certification-request')
@@ -87,14 +89,22 @@ describe('Certification Request tests', () => {
             .put(`/certification-request/${certificationRequestId}/approve`)
             .expect(200)
             .expect((res) => {
-                newCertificateId = res.body.newCertificateId;
-
                 expect(res.body.success).to.be.true;
-                expect(res.body.newCertificateId).to.be.above(-1);
             });
 
         await request(app.getHttpServer())
-            .get(`/certificate/${newCertificateId}`)
+            .get(`/certification-request/${certificationRequestId}`)
+            .expect(200)
+            .expect((res) => {
+                newCertificateTokenId = res.body.issuedCertificateTokenId;
+
+                expect(newCertificateTokenId).to.be.above(-1);
+            });
+
+        await sleep(1000);
+
+        await request(app.getHttpServer())
+            .get(`/certificate/token-id/${newCertificateTokenId}`)
             .expect(200)
             .expect((res) => {
                 const {

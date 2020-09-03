@@ -23,6 +23,7 @@ import { TransferCertificateCommand } from './commands/transfer-certificate.comm
 import { ITransferCertificateDTO } from './commands/transfer-certificate.dto';
 import { IClaimCertificateDTO } from './commands/claim-certificate.dto';
 import { ClaimCertificateCommand } from './commands/claim-certificate.command';
+import { GetCertificateByTokenIdQuery } from './queries/get-certificate-by-token.query';
 
 @Controller('certificate')
 export class CertificateController {
@@ -34,6 +35,14 @@ export class CertificateController {
     @UseGuards(AuthGuard(), ActiveUserGuard)
     public async get(@Param('id', new ParseIntPipe()) id: number): Promise<Certificate> {
         return this.queryBus.execute(new GetCertificateQuery(id));
+    }
+
+    @Get('/token-id/:tokenId')
+    @UseGuards(AuthGuard(), ActiveUserGuard)
+    public async getByTokenId(
+        @Param('tokenId', new ParseIntPipe()) tokenId: number
+    ): Promise<Certificate> {
+        return this.queryBus.execute(new GetCertificateByTokenIdQuery(tokenId));
     }
 
     @Get()
