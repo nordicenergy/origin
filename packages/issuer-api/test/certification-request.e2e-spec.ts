@@ -28,6 +28,11 @@ describe('Certification Request tests', () => {
         await app.init();
     });
 
+    afterEach(async () => {
+        await databaseService.truncate('certification_request');
+        await databaseService.truncate('certificate');
+    });
+
     after(async () => {
         await databaseService.cleanUp();
         await app.close();
@@ -72,6 +77,18 @@ describe('Certification Request tests', () => {
             .expect((res) => {
                 expect(res.body.length).to.equal(1);
             });
+    });
+
+    it('should not be able to request certification request twice for the same time period', async () => {
+        await request(app.getHttpServer())
+            .post('/certification-request')
+            .send(certificationRequestTestData)
+            .expect(201);
+
+        await request(app.getHttpServer())
+            .post('/certification-request')
+            .send(certificationRequestTestData)
+            .expect(409);
     });
 
     it('should approve a certification request and a new certificate should be created', async () => {
