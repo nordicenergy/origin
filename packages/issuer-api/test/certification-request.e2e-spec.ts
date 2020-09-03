@@ -74,7 +74,7 @@ describe('Certification Request tests', () => {
             });
     });
 
-    it('should approve a certification request', async () => {
+    it('should approve a certification request and a new certificate should be created', async () => {
         let certificationRequestId;
         let newCertificateTokenId;
 
@@ -124,6 +124,49 @@ describe('Certification Request tests', () => {
                 expect(creationBlockHash);
                 expect(tokenId).to.be.above(-1);
                 expect(owners[deviceManager.address]).to.equal(certificationRequestTestData.energy);
+            });
+    });
+
+    it('should revoke a certification request', async () => {
+        let certificationRequestId;
+
+        await request(app.getHttpServer())
+            .post('/certification-request')
+            .send(certificationRequestTestData)
+            .expect((res) => {
+                certificationRequestId = res.body.id;
+            });
+
+        await request(app.getHttpServer())
+            .put(`/certification-request/${certificationRequestId}/revoke`)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.success).to.be.true;
+            });
+    });
+
+    it('should fail to revoke a revoked certification request', async () => {
+        let certificationRequestId;
+
+        await request(app.getHttpServer())
+            .post('/certification-request')
+            .send(certificationRequestTestData)
+            .expect((res) => {
+                certificationRequestId = res.body.id;
+            });
+
+        await request(app.getHttpServer())
+            .put(`/certification-request/${certificationRequestId}/revoke`)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.success).to.be.true;
+            });
+
+        await request(app.getHttpServer())
+            .put(`/certification-request/${certificationRequestId}/revoke`)
+            .expect(400)
+            .expect((res) => {
+                expect(res.body.success).to.be.false;
             });
     });
 });

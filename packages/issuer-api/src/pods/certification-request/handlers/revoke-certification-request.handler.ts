@@ -1,35 +1,32 @@
-import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BigNumber } from 'ethers';
 import { CertificationRequest as CertificationRequestFacade } from '@energyweb/issuer';
 import { BadRequestException } from '@nestjs/common';
 import { ISuccessResponse } from '@energyweb/origin-backend-core';
 
-import { ApproveCertificationRequestCommand } from '../commands/approve-certification-request.command';
+import { RevokeCertificationRequestCommand } from '../commands/revoke-certification-request.command';
 import { CertificationRequest } from '../certification-request.entity';
 import { BlockchainPropertiesService } from '../../blockchain/blockchain-properties.service';
-import { CertificateCreatedEvent } from '../../certificate/events/certificate-created-event';
 
-@CommandHandler(ApproveCertificationRequestCommand)
-export class ApproveCertificationRequestHandler
-    implements ICommandHandler<ApproveCertificationRequestCommand> {
+@CommandHandler(RevokeCertificationRequestCommand)
+export class RevokeCertificationRequestHandler
+    implements ICommandHandler<RevokeCertificationRequestCommand> {
     constructor(
         @InjectRepository(CertificationRequest)
         private readonly repository: Repository<CertificationRequest>,
-        private readonly blockchainPropertiesService: BlockchainPropertiesService,
-        private readonly eventBus: EventBus
+        private readonly blockchainPropertiesService: BlockchainPropertiesService
     ) {}
 
-    async execute(command: ApproveCertificationRequestCommand): Promise<ISuccessResponse> {
+    async execute(command: RevokeCertificationRequestCommand): Promise<ISuccessResponse> {
         const { id } = command;
 
         const certificationRequest = await this.repository.findOne(id);
 
-        if (certificationRequest.approved) {
+        if (certificationRequest.revoked || certificationRequest.approved) {
             throw new BadRequestException({
                 success: false,
-                message: `Certificate #${id} has already been approved`
+                message: `Certificate #${id} can't be revoked. It has already been revoked or approved.`
             });
         }
 
@@ -40,28 +37,23 @@ export class ApproveCertificationRequestHandler
             blockchainProperties.wrap()
         ).sync();
 
-        let newCertificateId;
-
         try {
-            newCertificateId = await certReq.approve(BigNumber.from(certificationRequest.energy));
+            await certReq.revoke();
         } catch (e) {
-            return {
+            throw new BadRequestException({
                 success: false,
                 message: e.message
-            };
+            });
         }
 
-        this.eventBus.publish(new CertificateCreatedEvent(newCertificateId));
-
         await this.repository.update(id, {
-            approved: true,
-            approvedDate: new Date(),
-            issuedCertificateTokenId: newCertificateId
+            revoked: true,
+            revokedDate: new Date()
         });
 
         return {
             success: true,
-            message: `Successfully approved certificationRequest ${id}.`
+            message: `Successfully revoked certificationRequest ${id}.`
         };
     }
 }

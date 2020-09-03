@@ -118,7 +118,7 @@ contract Issuer is Initializable, Ownable {
     function revokeRequest(uint256 _requestId) external {
         CertificationRequest storage request = certificationRequests[_requestId];
 
-        require(msg.sender == request.owner, "revokeRequest(): Only the request creator can revoke the request.");
+        require(msg.sender == request.owner || msg.sender == Ownable.owner(), "revokeRequest(): Only the request creator can revoke the request.");
         require(!request.revoked, "revokeRequest(): Already revoked");
         require(!request.approved, "revokeRequest(): You can't revoke approved requests");
 

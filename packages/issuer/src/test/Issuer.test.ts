@@ -138,6 +138,21 @@ describe('Issuer', () => {
         assert.isTrue(certificationRequest.revoked);
     });
 
+    it('issuer should be able to revoke a certificationRequest', async () => {
+        setActiveUser(issuerWallet);
+
+        let certificationRequest = await createCertificationRequest();
+
+        certificationRequest = await certificationRequest.sync();
+
+        assert.isFalse(certificationRequest.revoked);
+
+        await certificationRequest.revoke();
+
+        certificationRequest = await certificationRequest.sync();
+        assert.isTrue(certificationRequest.revoked);
+    });
+
     it('user shouldnt be able to revoke an approved certificationRequest', async () => {
         setActiveUser(deviceOwnerWallet);
 

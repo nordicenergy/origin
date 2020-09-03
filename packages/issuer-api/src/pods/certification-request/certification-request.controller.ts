@@ -20,6 +20,7 @@ import { CertificationRequest } from './certification-request.entity';
 import { GetAllCertificationRequestsQuery } from './queries/get-all-certification-requests.query';
 import { GetCertificationRequestQuery } from './queries/get-certification-request.query';
 import { ApproveCertificationRequestCommand } from './commands/approve-certification-request.command';
+import { RevokeCertificationRequestCommand } from './commands/revoke-certification-request.command';
 
 @Controller('certification-request')
 export class CertificationRequestController {
@@ -61,5 +62,12 @@ export class CertificationRequestController {
     @Roles(Role.Issuer, Role.Admin)
     public async approve(@Param('id', new ParseIntPipe()) id: number): Promise<ISuccessResponse> {
         return this.commandBus.execute(new ApproveCertificationRequestCommand(id));
+    }
+
+    @Put('/:id/revoke')
+    @UseGuards(AuthGuard(), ActiveUserGuard, RolesGuard)
+    @Roles(Role.Issuer, Role.Admin)
+    public async revoke(@Param('id', new ParseIntPipe()) id: number): Promise<ISuccessResponse> {
+        return this.commandBus.execute(new RevokeCertificationRequestCommand(id));
     }
 }
