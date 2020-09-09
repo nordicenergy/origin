@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Certificate as CertificateFacade, CertificateUtils } from '@energyweb/issuer';
 import { BigNumber } from 'ethers';
 import { ISuccessResponse } from '@energyweb/origin-backend-core';
+import { BadRequestException } from '@nestjs/common';
 import { ClaimCertificateCommand } from '../commands/claim-certificate.command';
 import { Certificate } from '../certificate.entity';
 
@@ -15,7 +16,7 @@ export class ClaimCertificateHandler implements ICommandHandler<ClaimCertificate
     ) {}
 
     async execute(command: ClaimCertificateCommand): Promise<ISuccessResponse> {
-        const { certificateId, claimData, from, to, amount } = command;
+        const { certificateId, claimData, forAddress, amount } = command;
 
         const certificate = await this.repository.findOne(
             { id: certificateId },
@@ -27,12 +28,26 @@ export class ClaimCertificateHandler implements ICommandHandler<ClaimCertificate
             certificate.blockchain.wrap()
         ).sync();
 
+        if (certificate.issuedPrivately) {
+            const claimerPrivateBalance = BigNumber.from(
+                certificate.privateOwners[forAddress] ?? 0
+            );
+            const amountToClaim = BigNumber.from(amount);
+
+            if (amountToClaim > claimerPrivateBalance) {
+                throw new BadRequestException({
+                    success: false,
+                    message: `Claimer ${forAddress} has a private balance of ${claimerPrivateBalance.toString()} but wants to claim ${amount}.`
+                });
+            }
+        }
+
         try {
             await cert.claim(
                 claimData,
-                BigNumber.from(amount ?? certificate.owners[from]),
-                from,
-                to
+                BigNumber.from(amount ?? certificate.owners[forAddress]),
+                forAddress,
+                forAddress
             );
         } catch (error) {
             return {

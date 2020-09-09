@@ -52,7 +52,8 @@ export class CertificationRequestController {
                 dto.fromTime,
                 dto.toTime,
                 dto.deviceId,
-                dto.files
+                dto.files,
+                dto.isPrivate
             )
         );
     }

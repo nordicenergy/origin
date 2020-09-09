@@ -16,13 +16,13 @@ export class IssueCertificateHandler implements ICommandHandler<IssueCertificate
     ) {}
 
     async execute(command: IssueCertificateCommand): Promise<Certificate> {
-        const { to, energy, fromTime, toTime, deviceId } = command;
+        const { to, energy, fromTime, toTime, deviceId, isPrivate } = command;
 
         const blockchainProperties = await this.blockchainPropertiesService.get();
 
         const cert = await CertificateFacade.create(
             to,
-            BigNumber.from(energy),
+            BigNumber.from(isPrivate ? 0 : energy),
             fromTime,
             toTime,
             deviceId,
@@ -42,7 +42,9 @@ export class IssueCertificateHandler implements ICommandHandler<IssueCertificate
             generationEndTime: cert.generationEndTime,
             creationTime: cert.creationTime,
             creationBlockHash: cert.creationBlockHash,
-            owners: certificateOwners
+            owners: certificateOwners,
+            privateOwners: isPrivate ? { [to]: energy } : {},
+            issuedPrivately: isPrivate ?? false
         });
 
         return this.repository.save(certificate);

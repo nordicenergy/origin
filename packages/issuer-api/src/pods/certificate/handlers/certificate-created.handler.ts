@@ -16,15 +16,14 @@ export class CertificateCreatedHandler implements IEventHandler<CertificateCreat
     ) {}
 
     async handle(event: CertificateCreatedEvent): Promise<Certificate> {
+        const { certificateId, privateInfo } = event;
+
         const blockchainProperties = await this.blockchainPropertiesService.get();
 
-        const cert = await new CertificateFacade(
-            event.certificateId,
-            blockchainProperties.wrap()
-        ).sync();
+        const cert = await new CertificateFacade(certificateId, blockchainProperties.wrap()).sync();
 
         const certificateOwners = await CertificateUtils.calculateOwnership(
-            event.certificateId,
+            certificateId,
             blockchainProperties.wrap()
         );
 
@@ -36,7 +35,9 @@ export class CertificateCreatedHandler implements IEventHandler<CertificateCreat
             generationEndTime: cert.generationEndTime,
             creationTime: cert.creationTime,
             creationBlockHash: cert.creationBlockHash,
-            owners: certificateOwners
+            owners: certificateOwners,
+            privateOwners: privateInfo ? { [privateInfo.owner]: privateInfo.energy } : {},
+            issuedPrivately: !!privateInfo
         });
 
         return this.repository.save(certificate);

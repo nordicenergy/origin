@@ -20,7 +20,7 @@ export class CreateCertificationRequestHandler
     ) {}
 
     async execute(command: CreateCertificationRequestCommand): Promise<CertificationRequest> {
-        const { to, energy, fromTime, toTime, deviceId, files } = command;
+        const { to, energy, fromTime, toTime, deviceId, files, isPrivate } = command;
 
         await this.validateGenerationPeriod(fromTime, toTime, deviceId);
 
@@ -44,7 +44,8 @@ export class CreateCertificationRequestHandler
             created: certReq.created,
             approved: certReq.approved,
             revoked: certReq.revoked,
-            files
+            files,
+            isPrivate: isPrivate ?? false
         });
 
         return this.repository.save(certificationRequest);

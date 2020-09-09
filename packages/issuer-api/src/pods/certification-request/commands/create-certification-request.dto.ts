@@ -5,4 +5,5 @@ export interface ICreateCertificationRequestDTO {
     toTime: number;
     deviceId: string;
     files?: string[];
+    isPrivate: boolean;
 }

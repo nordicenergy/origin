@@ -24,9 +24,9 @@ export class ApproveCertificationRequestHandler
     async execute(command: ApproveCertificationRequestCommand): Promise<ISuccessResponse> {
         const { id } = command;
 
-        const certificationRequest = await this.repository.findOne(id);
+        const { requestId, isPrivate, energy, approved, owner } = await this.repository.findOne(id);
 
-        if (certificationRequest.approved) {
+        if (approved) {
             throw new BadRequestException({
                 success: false,
                 message: `Certificate #${id} has already been approved`
@@ -36,22 +36,24 @@ export class ApproveCertificationRequestHandler
         const blockchainProperties = await this.blockchainPropertiesService.get();
 
         const certReq = await new CertificationRequestFacade(
-            certificationRequest.requestId,
+            requestId,
             blockchainProperties.wrap()
         ).sync();
 
         let newCertificateId;
 
         try {
-            newCertificateId = await certReq.approve(BigNumber.from(certificationRequest.energy));
+            newCertificateId = await certReq.approve(BigNumber.from(isPrivate ? 0 : energy));
         } catch (e) {
-            return {
+            throw new BadRequestException({
                 success: false,
-                message: e.message
-            };
+                message: e.message,
+                energy,
+                isPrivate
+            });
         }
 
-        this.eventBus.publish(new CertificateCreatedEvent(newCertificateId));
+        this.eventBus.publish(new CertificateCreatedEvent(newCertificateId, { owner, energy }));
 
         await this.repository.update(id, {
             approved: true,

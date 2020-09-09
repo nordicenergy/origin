@@ -72,4 +72,8 @@ export class CertificationRequest extends ExtendedBaseEntity implements ICertifi
     @IsInt()
     @Min(0)
     issuedCertificateTokenId: number;
+
+    @Column()
+    @IsBoolean()
+    isPrivate: boolean;
 }

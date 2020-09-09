@@ -186,4 +186,61 @@ describe('Certification Request tests', () => {
                 expect(res.body.success).to.be.false;
             });
     });
+
+    it('should create a private certification request', async () => {
+        await request(app.getHttpServer())
+            .post('/certification-request')
+            .send({
+                ...certificationRequestTestData,
+                isPrivate: true
+            })
+            .expect(201)
+            .expect((res) => {
+                expect(res.body.isPrivate).to.be.true;
+            });
+    });
+
+    it('should approve a private certification request', async () => {
+        let certificationRequestId;
+        let newCertificateTokenId;
+
+        await request(app.getHttpServer())
+            .post('/certification-request')
+            .send({
+                ...certificationRequestTestData,
+                isPrivate: true
+            })
+            .expect(201)
+            .expect((res) => {
+                certificationRequestId = res.body.id;
+            });
+
+        await request(app.getHttpServer())
+            .put(`/certification-request/${certificationRequestId}/approve`)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.success).to.be.true;
+            });
+
+        await sleep(1000);
+
+        await request(app.getHttpServer())
+            .get(`/certification-request/${certificationRequestId}`)
+            .expect(200)
+            .expect((res) => {
+                newCertificateTokenId = res.body.issuedCertificateTokenId;
+            });
+
+        await request(app.getHttpServer())
+            .get(`/certificate/token-id/${newCertificateTokenId}`)
+            .expect(200)
+            .expect((res) => {
+                const { owners, privateOwners } = res.body;
+
+                expect(privateOwners[deviceManager.address]).to.equal(
+                    certificationRequestTestData.energy
+                );
+                expect(owners[deviceManager.address]).to.equal(undefined);
+            });
+    });
 });

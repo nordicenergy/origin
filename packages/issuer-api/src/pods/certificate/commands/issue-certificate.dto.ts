@@ -4,4 +4,5 @@ export interface IIssueCertificateDTO {
     fromTime: number;
     toTime: number;
     deviceId: string;
+    isPrivate?: boolean;
 }

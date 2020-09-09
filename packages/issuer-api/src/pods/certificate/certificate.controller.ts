@@ -55,7 +55,14 @@ export class CertificateController {
     @UseGuards(AuthGuard(), ActiveUserGuard)
     public async issue(@Body() dto: IIssueCertificateDTO): Promise<Certificate> {
         return this.commandBus.execute(
-            new IssueCertificateCommand(dto.to, dto.energy, dto.fromTime, dto.toTime, dto.deviceId)
+            new IssueCertificateCommand(
+                dto.to,
+                dto.energy,
+                dto.fromTime,
+                dto.toTime,
+                dto.deviceId,
+                dto.isPrivate
+            )
         );
     }
 
@@ -87,7 +94,6 @@ export class CertificateController {
             new ClaimCertificateCommand(
                 certificateId,
                 dto.claimData,
-                blockchainAccountAddress,
                 blockchainAccountAddress,
                 dto.amount
             )

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Certificate as CertificateFacade, CertificateUtils } from '@energyweb/issuer';
 import { BigNumber } from 'ethers';
 import { ISuccessResponse } from '@energyweb/origin-backend-core';
+import { BadRequestException } from '@nestjs/common';
 import { TransferCertificateCommand } from '../commands/transfer-certificate.command';
 import { Certificate } from '../certificate.entity';
 
@@ -22,28 +23,52 @@ export class TransferCertificateHandler implements ICommandHandler<TransferCerti
             { relations: ['blockchain'] }
         );
 
-        const cert = await new CertificateFacade(
+        const onChainCert = await new CertificateFacade(
             certificate.tokenId,
             certificate.blockchain.wrap()
         ).sync();
 
-        try {
-            await cert.transfer(to, amount ? BigNumber.from(amount) : null, from);
-        } catch (error) {
-            return {
-                success: false,
-                message: JSON.stringify(error)
-            };
+        if (certificate.issuedPrivately) {
+            const senderBalance = BigNumber.from(certificate.privateOwners[from] ?? 0);
+            const receiverBalance = BigNumber.from(certificate.privateOwners[to] ?? 0);
+            const amountToTransfer = BigNumber.from(amount);
+
+            if (amountToTransfer > senderBalance) {
+                throw new BadRequestException({
+                    success: false,
+                    message: `Sender ${from} has a balance of ${senderBalance.toString()} but wants to send ${amount}`
+                });
+            }
+
+            const newSenderBalance = senderBalance.sub(amountToTransfer);
+            const newReceiverBalance = receiverBalance.add(amountToTransfer);
+
+            await this.repository.update(certificateId, {
+                privateOwners: {
+                    ...certificate.privateOwners,
+                    [from]: newSenderBalance.toString(),
+                    [to]: newReceiverBalance.toString()
+                }
+            });
+        } else {
+            try {
+                await onChainCert.transfer(to, amount ? BigNumber.from(amount) : null, from);
+            } catch (error) {
+                return {
+                    success: false,
+                    message: JSON.stringify(error)
+                };
+            }
+
+            const newOwners = await CertificateUtils.calculateOwnership(
+                certificate.tokenId,
+                certificate.blockchain.wrap()
+            );
+
+            await this.repository.update(certificateId, {
+                owners: newOwners
+            });
         }
-
-        const newOwners = await CertificateUtils.calculateOwnership(
-            certificate.tokenId,
-            certificate.blockchain.wrap()
-        );
-
-        await this.repository.update(certificateId, {
-            owners: newOwners
-        });
 
         return {
             success: true

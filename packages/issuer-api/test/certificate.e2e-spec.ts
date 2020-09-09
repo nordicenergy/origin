@@ -131,8 +131,117 @@ describe('Certificate tests', () => {
             .get(`/certificate/${certificateId}`)
             .expect(200)
             .expect((getResponse) => {
-                const { claimers, claims } = getResponse.body;
+                const { claimers, claims, owners } = getResponse.body;
 
+                expect(owners[deviceManager.address]).to.equal('0');
+                expect(claimers[deviceManager.address]).to.equal(value);
+                expect(
+                    claims.some(
+                        (claim: IClaim) =>
+                            claim.to === deviceManager.address &&
+                            claim.from === deviceManager.address &&
+                            JSON.stringify(claim.claimData) === JSON.stringify(claimData) &&
+                            claim.value === parseInt(value, 10)
+                    )
+                ).to.be.true;
+            });
+    });
+
+    it('should create a private certificate', async () => {
+        await request(app.getHttpServer())
+            .post('/certificate')
+            .send({
+                ...certificateTestData,
+                isPrivate: true
+            })
+            .expect(201)
+            .expect((res) => {
+                const { privateOwners } = res.body;
+
+                expect(privateOwners[deviceManager.address]).to.equal(certificateTestData.energy);
+            });
+    });
+
+    it('should transfer a private certificate', async () => {
+        let certificateId;
+
+        await request(app.getHttpServer())
+            .post('/certificate')
+            .send({
+                ...certificateTestData,
+                isPrivate: true
+            })
+            .expect(201)
+            .expect((res) => {
+                certificateId = res.body.id;
+                const { privateOwners } = res.body;
+
+                expect(privateOwners[deviceManager.address]).to.equal(certificateTestData.energy);
+                expect(privateOwners[registryDeployer.address]).to.equal(undefined);
+            });
+
+        await request(app.getHttpServer())
+            .put(`/certificate/${certificateId}/transfer`)
+            .send({
+                to: registryDeployer.address,
+                amount: certificateTestData.energy
+            })
+            .expect(200)
+            .expect((transferResponse) => {
+                expect(transferResponse.body.success).to.be.true;
+            });
+
+        await request(app.getHttpServer())
+            .get(`/certificate/${certificateId}`)
+            .expect(200)
+            .expect((getResponse) => {
+                const { privateOwners } = getResponse.body;
+
+                expect(privateOwners[deviceManager.address]).to.equal('0');
+                expect(privateOwners[registryDeployer.address]).to.equal(
+                    certificateTestData.energy
+                );
+            });
+    });
+
+    it('should claim a private certificate', async () => {
+        const value = '1000000';
+        const claimData: IClaimData = {
+            beneficiary: 'Testing beneficiary 1234',
+            address: 'Random address 123, Somewhere',
+            region: 'Northernmost Region',
+            zipCode: '321-45',
+            countryCode: 'DE'
+        };
+
+        let certificateId: number;
+
+        await request(app.getHttpServer())
+            .post('/certificate')
+            .send({
+                ...certificateTestData,
+                isPrivate: false
+            })
+            .expect(201)
+            .expect((res) => {
+                certificateId = res.body.id;
+            });
+
+        await request(app.getHttpServer())
+            .put(`/certificate/${certificateId}/claim`)
+            .send({ claimData })
+            .expect(200)
+            .expect((claimResponse) => {
+                expect(claimResponse.body.success).to.be.true;
+            });
+
+        await request(app.getHttpServer())
+            .get(`/certificate/${certificateId}`)
+            .expect(200)
+            .expect((getResponse) => {
+                const { claimers, claims, privateOwners } = getResponse.body;
+
+                expect(privateOwners[deviceManager.address]).to.equal('0');
                 expect(claimers[deviceManager.address]).to.equal(value);
                 expect(
                     claims.some(
